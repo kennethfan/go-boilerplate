@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 
 	pb "github.com/kenneth/go-boilerplate/proto/gen/go"
@@ -46,12 +47,18 @@ func toPB(u *model.User) *pb.User {
 		Username:  u.Username,
 		Nickname:  u.Nickname,
 		Role:      u.Role,
-		CreatedAt: timePtr(u.CreatedAt),
-		UpdatedAt: timePtr(u.UpdatedAt),
+		CreatedAt: toTS(u.CreatedAt),
+		UpdatedAt: toTS(u.UpdatedAt),
 	}
 }
 
-func timePtr(t time.Time) *time.Time { return &t }
+// toTS time.Time → *timestamppb.Timestamp；零值返回 nil（避免 proto 默认值噪声）
+func toTS(t time.Time) *timestamppb.Timestamp {
+	if t.IsZero() {
+		return nil
+	}
+	return timestamppb.New(t)
+}
 
 // GetUser gRPC
 func (g *UserGRPC) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
