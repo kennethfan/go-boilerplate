@@ -1,5 +1,7 @@
 # go-boilerplate
 
+[![test](https://github.com/kennethfan/go-boilerplate/actions/workflows/test.yml/badge.svg)](https://github.com/kennethfan/go-boilerplate/actions/workflows/test.yml)
+
 Go 后端脚手架：集成 HTTP / ORM / Redis / MQ 基础组件、JWT + RBAC 权限校验、结构化日志、OpenTelemetry 链路追踪。
 
 ## 技术栈
