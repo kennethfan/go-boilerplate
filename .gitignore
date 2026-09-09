@@ -1,0 +1,28 @@
+# 二进制
+bin/
+dist/
+
+# 本地环境配置（含敏感信息，按需调整是否忽略）
+configs/config.local.yaml
+
+# 运行时产物
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Go
+*.test
+*.out
+coverage.txt
+vendor/
+
+# 本地 SQLite / 数据文件
+data/
+
+# WorkBuddy agent workspace（私域 memory，不进 git）
+.workbuddy/

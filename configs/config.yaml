@@ -1,0 +1,150 @@
+# 应用配置（开发环境）
+# 敏感信息请勿提交生产值；生产环境通过独立配置文件或环境变量覆盖
+
+app:
+  name: go-boilerplate
+  env: dev            # dev / test / prod
+  debug: true
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  read_timeout: 10s
+  write_timeout: 10s
+  shutdown_timeout: 15s   # 优雅退出最大等待时间
+
+# 数据库：mysql / postgres / sqlite 三选一，通过 type 切换
+# 快速体验（无需外部依赖）可改用 sqlite：
+#   type: sqlite
+#   name: ./data/app.db
+database:
+  type: mysql
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: root123
+  name: go_boilerplate
+  # dsn: ""                     # 可选：直接写完整连接串，覆盖上面字段
+  max_idle_conns: 10
+  max_open_conns: 100           # sqlite 建议设为 1
+  conn_max_lifetime: 1h
+  log_level: warn               # silent / error / warn / info
+  auto_migrate: true            # 启动时 GORM 自动建表（跨库适配）
+
+redis:
+  enable: true              # 总开关：false 则不初始化 redis 客户端，/readyz 跳过 redis 检查
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+  pool_size: 100
+
+rocketmq:
+  endpoints:              # NameServer 地址列表
+    - 127.0.0.1:9876
+  producer:
+    enable: true
+    retry: 2              # 发送失败重试次数
+  consumer:
+    enable: true
+    group: go-boilerplate-consumer
+    topic: demo_topic
+
+jwt:
+  secret: change-me-to-a-random-32-bytes-secret!!   # 生产必须替换
+  issuer: go-boilerplate
+  access_expire: 2h       # 访问令牌有效期
+  refresh_expire: 168h    # 刷新令牌有效期（7 天）
+
+log:
+  level: debug            # debug / info / warn / error
+  dir: ./logs             # 为空则只输出到 stdout/stderr
+  filename: app.log
+  max_size_mb: 100        # 单文件最大体积（MB），超过滚动
+  max_backups: 7          # 保留旧文件数
+  max_age_days: 30        # 旧文件保留天数
+  compress: true          # 是否 gzip 压缩旧文件
+
+otel:
+  enable: true
+  endpoint: 127.0.0.1:4317   # OTLP gRPC（Jaeger all-in-one）
+  insecure: true
+  service_name: go-boilerplate
+  sample_ratio: 1.0          # 采样率，开发 1.0 全采，生产可调低
+
+# Prometheus 监控总开关：false 则不挂 Prometheus 中间件、不暴露 /metrics 端点、不启用 GORM/Redis 指标
+metrics:
+  enable: true
+
+# 鉴权：false 则不挂 JWT/Casbin 中间件，业务接口（/users 等）放行（公开部署场景）
+auth:
+  enable: true
+
+# 实时通信（WebSocket / SSE）：false 则不挂 /ws 和 /sse 路由
+realtime:
+  enable: true
+
+# API 文档：false 则不挂 /swagger 路由
+docs:
+  enable: true
+
+# 定时任务调度器
+# enable=false 时 New/Start/Stop 全是 no-op，零开销
+# 任务来源：
+#   - cfg.cron.jobs：声明式、无外部依赖（仅打印心跳）
+#   - internal/cron/jobs.go：业务任务，依赖 service / DB
+cron:
+  enable: true
+  location: "Asia/Shanghai"   # IANA 时区名；空或解析失败回退到本地
+  jobs:
+    - name: heartbeat_tick
+      spec: "@every 30s"
+      description: 每 30 秒打一条心跳日志
+      log: "cron tick from declarative job"
+
+# gRPC server：默认构建不包含（需 `go build -tags grpc` 并先 make proto 生成 stub）
+grpc:
+  enable: false
+  addr: 0.0.0.0:9091
+
+# 服务注册中心：启动时向 nacos 注册本实例、退出时注销
+# 临时实例（ephemeral=true）由 nacos-sdk-go 内部自动心跳
+registry:
+  enable: false
+  type: nacos
+  nacos_addrs: [ "127.0.0.1:8848" ]
+  nacos_namespace: ""
+  service_name: go-boilerplate
+  group: DEFAULT_GROUP
+  ip: ""                          # 留空自动获取本机非回环 IPv4
+  port: 0                         # 0 = 用 cfg.Server.Port
+  ephemeral: true
+  metadata: {}
+
+casbin:
+  model_path: configs/casbin_model.conf
+
+# 配置中心：enable 为 true 时，业务配置（database/redis/jwt 等）改为从远程拉取并热更新。
+# 三选一：local（文件兜底）/ nacos / apollo。远程配置为完整 YAML，结构与本文件业务段一致。
+config_center:
+  enable: false
+  type: local          # local / nacos / apollo
+
+  # --- local ---
+  file_path: configs/config.yaml
+
+  # --- nacos ---
+  # type: nacos
+  # nacos_addrs: [ "127.0.0.1:8848" ]
+  # nacos_namespace: ""             # 命名空间，public 留空
+  # nacos_data_id: go-boilerplate.yaml   # dataId 内容为完整 YAML
+  # nacos_group: DEFAULT_GROUP
+
+  # --- apollo ---
+  # type: apollo
+  # apollo_app_id: go-boilerplate
+  # apollo_cluster: default
+  # apollo_meta_addr: http://127.0.0.1:8080
+  # apollo_namespaces: [ "application" ]
+  # apollo_content_key: content     # 该 key 的值存放完整 YAML
+  # apollo_secret: ""
+

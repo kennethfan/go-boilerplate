@@ -1,0 +1,11 @@
+# Prometheus 抓取配置
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "go-boilerplate"
+    metrics_path: /metrics
+    static_configs:
+      # 宿主机访问容器：host.docker.internal 指向宿主机
+      - targets: ["host.docker.internal:8080"]

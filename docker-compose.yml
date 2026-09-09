@@ -1,0 +1,115 @@
+# 一键拉起本地依赖：MySQL 8 + Redis 7 + RocketMQ 5 + Jaeger + Prometheus + Grafana
+# 用法：docker compose up -d
+# Jaeger UI:   http://127.0.0.1:16686
+# Prometheus:  http://127.0.0.1:9090
+# Grafana:     http://127.0.0.1:3000（admin / admin）
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: gob-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: go_boilerplate
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - gob-mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: gob-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - gob-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # PostgreSQL（选用 postgres 时启动）
+  postgres:
+    image: postgres:16-alpine
+    container_name: gob-postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root123
+      POSTGRES_DB: go_boilerplate
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - gob-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d go_boilerplate"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rmqnamesrv:
+    image: apache/rocketmq:5.3.1
+    container_name: gob-rmqnamesrv
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+
+  rmqbroker:
+    image: apache/rocketmq:5.3.1
+    container_name: gob-rmqbroker
+    command: sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/conf/broker.conf
+    depends_on:
+      - rmqnamesrv
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    volumes:
+      - ./scripts/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: gob-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: gob-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./scripts/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # 允许抓取宿主机上的服务
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: gob-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - gob-grafana-data:/var/lib/grafana
+
+volumes:
+  gob-mysql-data:
+  gob-redis-data:
+  gob-postgres-data:
+  gob-grafana-data:

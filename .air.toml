@@ -1,0 +1,19 @@
+# air 热重载配置：监听 .go/.yaml/.conf 变化并重启服务
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ./cmd/server"
+bin = "./tmp/main"
+args = []
+delay = 1000
+exclude_dir = ["assets", "tmp", "vendor", "bin", "logs", "node_modules", "api"]
+exclude_regex = ["_test\\.go$"]
+include_ext = ["go", "yaml", "yml", "conf"]
+kill_delay = "3s"
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
