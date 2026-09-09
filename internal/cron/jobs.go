@@ -7,12 +7,13 @@
 // 由 main.go 在此处一并 AddFunc。
 //
 // 添加任务步骤：
-//  1. 在本文件新增 registerXxx(sched *cron.Manager, deps ...)
+//  1. 在本文件新增 registerXxx(sched *cron.Manager, d Deps)
 //  2. 在 RegisterAll 末尾追加 sched.MustAddFunc(...)
 package jobs
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.uber.org/zap"
@@ -34,17 +35,23 @@ func RegisterAll(sched *cron.Manager, d Deps) {
 		return
 	}
 
-	// 业务任务：依赖 service / repository
+	// user_heartbeat：每分钟读一次用户表大小，验证 service / DB 链路畅通
 	sched.MustAddFunc(
 		"@every 1m",
 		"user_heartbeat",
 		func(ctx context.Context) error {
-			// 心跳：打印用户表大小，验证 DB + 服务层联通
 			if d.UserService == nil {
-				return nil
+				return errors.New("user_heartbeat: UserService not injected")
 			}
-			// 实际场景可换成：list users / count rows / 写 cache
-			d.Logger.Debug("user heartbeat tick", zap.Time("now", time.Now()))
+			// 拉第一页即可拿到 total（service.List 内部会先 Count）
+			_, total, err := d.UserService.List(ctx, 1, 1)
+			if err != nil {
+				return err
+			}
+			d.Logger.Info("user heartbeat",
+				zap.Int64("users", total),
+				zap.Time("now", time.Now()),
+			)
 			return nil
 		},
 	)
