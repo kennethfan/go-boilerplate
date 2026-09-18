@@ -5,7 +5,7 @@ package casbinx
 import (
 	"fmt"
 
-	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v3"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"gorm.io/gorm"
 )
