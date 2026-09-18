@@ -456,6 +456,27 @@ func TestHealthHandler_Ready_RedisDown(t *testing.T) {
 	}
 }
 
+func TestHealthHandler_Ready_RedisDisabled(t *testing.T) {
+	// rdb=nil（redis.enable=false）→ 不 panic，标记 disabled 且整体 200
+	db := testutil.NewSQLiteMemory(t)
+	hh := NewHealthHandler(db, nil) // 显式 nil
+
+	r := gin.New()
+	r.GET("/api/v1/readyz", hh.Ready)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/readyz", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("disabled redis want 200, got %d (body=%s)", w.Code, w.Body.String())
+	}
+	body := decodeBody(t, w)
+	data := body["data"].(map[string]any)
+	if data["redis"] != "disabled" {
+		t.Errorf("want redis=disabled, got %v", data["redis"])
+	}
+}
+
 // ---------- Realtime handlers (ws / sse) ----------
 
 func TestWSHandler_Serve_NoToken(t *testing.T) {

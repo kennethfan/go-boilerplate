@@ -60,8 +60,10 @@ func (h *HealthHandler) Ready(c *gin.Context) {
 		checks["mysql"] = "down"
 	}
 
-	// Redis
-	if err := h.rdb.Ping(ctx).Err(); err != nil {
+	// Redis（redis.enable=false 时 rdb 为 nil，跳过检查，标记 disabled 而非 down）
+	if h.rdb == nil {
+		checks["redis"] = "disabled"
+	} else if err := h.rdb.Ping(ctx).Err(); err != nil {
 		checks["redis"] = "down"
 	} else {
 		checks["redis"] = "up"
