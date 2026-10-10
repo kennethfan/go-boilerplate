@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>go-boilerplate · 文档</title>
+  <meta name="description" content="Go 后端脚手架文档：HTTP / ORM / Redis / MQ / JWT+RBAC / 结构化日志 / OTel / Prometheus / WebSocket+SSE / gRPC / 配置中心 / 定时任务。" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">go-boilerplate <span class="tag">Go 后端脚手架</span></div>
+    <nav>
+      <a href="https://github.com/kennethfan/go-boilerplate">GitHub</a>
+      <a href="#quickstart">快速开始</a>
+      <a href="#deployment">部署</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="group-title">入门</div>
+      <a href="#overview">概览</a>
+      <a href="#quickstart">快速开始</a>
+      <a href="#config">配置参考</a>
+      <div class="group-title">能力</div>
+      <a href="#stack">技术栈</a>
+      <a href="#toggles">组件开关矩阵</a>
+      <a href="#endpoints">API 与端点</a>
+      <a href="#structure">目录结构</a>
+      <div class="group-title">工程</div>
+      <a href="#deployment">部署</a>
+      <a href="#development">开发指南</a>
+      <a href="#seed">初始化与种子</a>
+    </aside>
+
+    <main class="content">
+      <div class="inner">
+        <h1>go-boilerplate</h1>
+        <p class="subtitle">一套开箱即用的 Go 后端脚手架：把后端常见基础设施一次性集成好，让你专注业务。</p>
+
+        <!-- 概览 -->
+        <section id="overview">
+          <div class="badges">
+            <span class="badge">Go 1.26</span>
+            <span class="badge">Gin</span>
+            <span class="badge">GORM ×3 数据库</span>
+            <span class="badge">JWT + Casbin RBAC</span>
+            <span class="badge">OTel / Prometheus</span>
+            <span class="badge">WebSocket + SSE</span>
+            <span class="badge">gRPC（build tag）</span>
+          </div>
+          <p class="lead">
+            go-boilerplate 集成了现代 Go 后端所需的 HTTP 框架、ORM、缓存、消息队列、认证授权、
+            结构化日志、链路追踪、监控、实时通信、gRPC、配置中心与定时任务。所有第三方组件均通过
+            <strong>统一开关矩阵</strong>控制，可按需裁剪，缺省全部开启。
+          </p>
+          <div class="callout ok">
+            <strong>设计目标：</strong>零改造即可启动一个具备生产可观测性（日志 / 追踪 / 指标）、
+            多数据库兼容、可热更新配置的微服务骨架；业务代码只写 <code>internal/</code> 下的 handler / service / repository。
+          </div>
+        </section>
+
+        <!-- 技术栈 -->
+        <section id="stack">
+          <h2>技术栈</h2>
+          <table>
+            <thead><tr><th>能力</th><th>组件</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>HTTP</td><td>Gin v1.10</td><td>统一响应封装、参数校验、CORS、Recovery</td></tr>
+              <tr><td>ORM</td><td>GORM v1.31</td><td>MySQL 8 / PostgreSQL 16 / SQLite（纯 Go 驱动 glebarez）三库可切换；连接池、自动埋点、版本化迁移</td></tr>
+              <tr><td>缓存</td><td>go-redis v9</td><td>连接池、自动埋点</td></tr>
+              <tr><td>MQ</td><td>RocketMQ 5（client-go v2）</td><td>同步发送 / 集群消费封装</td></tr>
+              <tr><td>认证</td><td>golang-jwt/v5</td><td>access + refresh 双令牌</td></tr>
+              <tr><td>授权</td><td>Casbin v3（RBAC）</td><td>策略存数据库，keyMatch2 路径匹配</td></tr>
+              <tr><td>日志</td><td>zap + lumberjack</td><td>结构化、文件滚动、trace_id 注入</td></tr>
+              <tr><td>链路追踪</td><td>OpenTelemetry → OTLP</td><td>HTTP / SQL / Redis 全链路 span，对接 Jaeger</td></tr>
+              <tr><td>监控</td><td>Prometheus + Grafana</td><td>HTTP / GORM / Redis / runtime 指标，<code>/metrics</code> 暴露</td></tr>
+              <tr><td>实时通信</td><td>WebSocket + SSE</td><td>gorilla/websocket（Hub 广播）+ 原生流式推送</td></tr>
+              <tr><td>注册中心</td><td>Nacos</td><td>启动注册 / 退出注销 + 健康发现（可扩展 Consul / etcd）</td></tr>
+              <tr><td>文档</td><td>swaggo</td><td>注解生成 Swagger</td></tr>
+              <tr><td>配置</td><td>viper + 配置中心</td><td>本地 YAML / Nacos / Apollo，支持热更新</td></tr>
+              <tr><td>迁移</td><td>golang-migrate</td><td>up / down 版本化 SQL（按方言分目录）</td></tr>
+              <tr><td>定时任务</td><td>robfig/cron/v3</td><td>声明式（YAML）+ 代码注册混合；panic 自动 recover；启用 / 禁用独立</td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn">
+            <strong>版本约束：</strong>Casbin 授权统一使用 <code>github.com/casbin/casbin/v3</code>（gorm-adapter v3.41.0 依赖
+            casbin/v3@v3.8.1）。若业务代码误用 <code>/v2</code>，启用 auth + Casbin 时启动会 panic（<code>*gormadapter.Adapter is not persist.Adapter</code>）。
+          </div>
+        </section>
+
+        <!-- 快速开始 -->
+        <section id="quickstart">
+          <h2>快速开始</h2>
+          <h3>前置要求</h3>
+          <ul>
+            <li>Go <strong>1.26.0</strong>（本项目锁定；用 gvm 管理多版本时先切到 1.26.0）。</li>
+            <li>目标数据库（MySQL 8 / PostgreSQL 16 / SQLite 任一）；默认 SQLite 可零依赖启动。</li>
+            <li>可选：启用 gRPC 需 <code>brew install protobuf</code> + <code>go install</code> protoc-gen-go / protoc-gen-go-grpc。</li>
+          </ul>
+
+          <h3>运行（默认 SQLite，零外部依赖）</h3>
+          <pre><code># 切到锁定版本
+gvm use 1.26.0          # 或 export PATH="$HOME/.gvm/gos/go1.26.0/bin:$PATH"
+
+# 拉取依赖
+go mod download
+
+# 启动服务（自动建表 + seed 管理员）
+go run ./cmd/server
+
+# 执行数据库迁移（如需单独跑）
+go run ./cmd/migrate up</code></pre>
+
+          <h3>启用 gRPC</h3>
+          <p>所有 gRPC 代码以 <code>//go:build grpc</code> 隔离，默认构建跳过。启用流程：</p>
+          <pre><code># 1. 安装 protobuf 工具链（仅一次）
+brew install protobuf
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# 2. 由 .proto 生成代码
+make proto
+
+# 3. 带 build tag 编译
+go build -tags grpc ./cmd/server</code></pre>
+          <div class="callout">
+            <strong>数据库切换：</strong><code>database.type</code> 设为 <code>mysql</code> / <code>postgres</code> / <code>sqlite</code>，
+            统一走 <code>pkg/database.New</code> 初始化。SQLite 建议 <code>max_open_conns: 1</code>。
+          </div>
+        </section>
+
+        <!-- 配置参考 -->
+        <section id="config">
+          <h2>配置参考</h2>
+          <p>配置文件位于 <code>configs/config.yaml</code>，由 <code>viper</code> 加载。配置中心（Nacos / Apollo）可在运行时热更新，
+            产出完整 YAML 经 <code>atomic.Pointer</code> 替换，业务通过 <code>config.Get()</code> 读取最新值。连接类组件启动时初始化一次，不随配置热重建。</p>
+          <pre><code># configs/config.yaml 关键节点
+database:
+  type: sqlite                 # mysql / postgres / sqlite
+  dsn: "./boilerplate.db"      # 或 RawDSN
+  max_open_conns: 1            # sqlite 建议 1
+
+config_center:
+  enable: false
+  type: local                 # local / nacos / apollo
+
+cron:
+  enable: true
+  location: "Asia/Shanghai"
+  jobs:
+    - name: heartbeat_tick
+      spec: "@every 30s"
+      description: 心跳
+
+# 组件开关（见下节「组件开关矩阵」）
+redis:    { enable: true }
+auth:     { enable: true }
+realtime: { enable: true }
+docs:     { enable: true }
+metrics:  { enable: true }
+grpc:     { enable: false }
+otel:     { enable: true }
+registry: { enable: false }
+rocketmq:
+  producer: { enable: false }
+  consumer: { enable: false }</code></pre>
+          <div class="callout warn">
+            <strong>字段命名：</strong>数据库 DSN 字段用 <code>RawDSN</code>（mapstructure: <code>dsn</code>），因其不能与
+            <code>DSN()</code> 方法同名。配置中心热更新时会保留 <code>ConfigCenter</code> 段。
+          </div>
+        </section>
+
+        <!-- 组件开关矩阵 -->
+        <section id="toggles">
+          <h2>组件开关矩阵</h2>
+          <p>所有 <code>enable</code> 字段缺省为 <code>true</code>。关闭某项即移除其依赖与路由，降低资源占用或简化部署。</p>
+          <table>
+            <thead><tr><th>开关</th><th>默认</th><th>关闭时的行为</th></tr></thead>
+            <tbody>
+              <tr><td><code>redis.enable</code></td><td>true</td><td><code>rdb=nil</code>；<code>/readyz</code> 跳过 redis 检查（输出 <code>redis: disabled</code>）</td></tr>
+              <tr><td><code>auth.enable</code></td><td>true</td><td>不挂 JWT / Casbin 中间件；<code>users</code> 路由放行</td></tr>
+              <tr><td><code>realtime.enable</code></td><td>true</td><td>不挂 <code>/ws</code>、<code>/sse</code></td></tr>
+              <tr><td><code>docs.enable</code></td><td>true</td><td>不挂 <code>/swagger/*any</code></td></tr>
+              <tr><td><code>metrics.enable</code></td><td>true</td><td>不挂 Prometheus 中间件、不暴露 <code>/metrics</code>、不注册 GORM / Redis hook</td></tr>
+              <tr><td><code>cron.enable</code></td><td>true</td><td><code>pkg/cron.New/Start/Stop</code> 变为 no-op，零开销</td></tr>
+              <tr><td><code>rocketmq.producer.enable</code></td><td>false</td><td>不初始化生产者</td></tr>
+              <tr><td><code>rocketmq.consumer.enable</code></td><td>false</td><td>不启动消费组</td></tr>
+              <tr><td><code>grpc.enable</code></td><td>false</td><td>不注册 gRPC server（需 build tag <code>grpc</code>）</td></tr>
+              <tr><td><code>registry.enable</code></td><td>false</td><td>不向注册中心注册</td></tr>
+              <tr><td><code>otel.enable</code></td><td>true</td><td>不初始化 OTLP 导出</td></tr>
+              <tr><td><code>config_center.enable</code></td><td>false</td><td>仅用本地 YAML</td></tr>
+            </tbody>
+          </table>
+          <p>HTTP 路由与探针由 <code>router.Toggles{...}</code> 收敛前五个开关；<code>/readyz</code> 允许 <code>rdb=nil</code>，
+            仅当依赖真正 <code>down</code> 才返回 503（<code>disabled</code> 不触发）。</p>
+        </section>
+
+        <!-- API 与端点 -->
+        <section id="endpoints">
+          <h2>API 与端点</h2>
+          <table>
+            <thead><tr><th>路径</th><th>说明</th><th>开关</th></tr></thead>
+            <tbody>
+              <tr><td><code>GET /healthz</code></td><td>存活探针</td><td>常驻</td></tr>
+              <tr><td><code>GET /readyz</code></td><td>依赖就绪探针（DB / Redis 等）</td><td>常驻</td></tr>
+              <tr><td><code>GET /metrics</code></td><td>Prometheus 指标</td><td><code>metrics.enable</code></td></tr>
+              <tr><td><code>/swagger/*any</code></td><td>Swagger UI</td><td><code>docs.enable</code></td></tr>
+              <tr><td><code>/api/v1/*</code></td><td>业务接口（auth / user / ...）</td><td><code>auth.enable</code></td></tr>
+              <tr><td><code>GET /ws</code></td><td>WebSocket（Hub 广播）</td><td><code>realtime.enable</code></td></tr>
+              <tr><td><code>GET /sse</code></td><td>SSE 流式推送</td><td><code>realtime.enable</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 目录结构 -->
+        <section id="structure">
+          <h2>目录结构</h2>
+          <pre><code>go-boilerplate/
+├── cmd/
+│   ├── server/main.go      # 服务入口（组装 + 优雅退出 + seed）
+│   └── migrate/main.go     # 数据库迁移工具
+├── configs/                # config.yaml / casbin_model.conf
+├── migrations/             # 版本化迁移 SQL（mysql/postgres/sqlite 分目录）
+├── internal/               # 业务代码（handler / service / repository / middleware / model）
+├── pkg/                    # 可复用基础设施（database / redis / otel / metrics / ws / sse / cron / logger / configcenter ...）
+├── proto/                  # .proto 与生成代码（build tag: grpc）
+├── website/                # 本文档站点（GitHub Pages 源）
+└── .github/workflows/      # CI（test.yml）+ Pages 部署（pages.yml）</code></pre>
+        </section>
+
+        <!-- 部署 -->
+        <section id="deployment">
+          <h2>部署</h2>
+          <h3>容器化（推荐）</h3>
+          <p>仓库根目录提供 <code>docker-compose.yml</code>，含应用、Prometheus 与 Grafana，一键拉起可观测栈：</p>
+          <pre><code>docker compose up -d</code></pre>
+
+          <h3>二进制</h3>
+          <pre><code>go build -o bin/server ./cmd/server
+./bin/server</code></pre>
+          <p>启用 gRPC 时加 <code>-tags grpc</code>。生产建议配合反向代理（Nginx / Caddy）暴露 <code>/api/v1</code> 与 <code>/metrics</code>。</p>
+
+          <h3>文档站点（GitHub Pages）</h3>
+          <p>本站由 <code>website/</code> 目录托管，经 GitHub Actions（<code>.github/workflows/pages.yml</code>）在每次 push 到
+            <code>main</code> 时自动构建并部署到 GitHub Pages（仓库 Pages 源设为 <strong>GitHub Actions</strong>，不污染任何分支）。</p>
+          <div class="callout">
+            本站点为纯静态 HTML，<strong>零构建依赖</strong>：CI 仅把 <code>website/</code> 作为 Pages artifact 上传并部署，无需 Node / Python 工具链。
+          </div>
+        </section>
+
+        <!-- 开发指南 -->
+        <section id="development">
+          <h2>开发指南</h2>
+          <h3>gRPC 隔离</h3>
+          <p>所有 gRPC 代码以 <code>//go:build grpc</code> 隔离。默认 <code>go build</code> 跳过；启用需先 <code>make proto</code> 再 <code>go build -tags grpc</code>。</p>
+
+          <h3>测试</h3>
+          <p>项目采用白盒单元测试，关键路径覆盖率目标 <strong>&gt;80%</strong>。基础设施包（redis / otel / mq / registry）依赖外部服务，留待 CI service 容器覆盖。</p>
+          <pre><code># 全量测试
+go test ./...
+
+# 单包（如配置）
+go test ./internal/config/...
+
+# 覆盖率
+go test -cover ./...</code></pre>
+          <div class="callout">
+            <strong>测试约定：</strong>数据库相关测试用 SQLite <code>:memory:</code> 单连接（<code>MaxOpenConns:1</code>）；
+            HTTP 层用 <code>httptest</code> + gin 真栈端到端验证；JWT 有效期是 <code>time.Duration</code>，测试里必须写
+            <code>900 * time.Second</code>（裸 <code>900</code> 会被当 900ns 导致 token 瞬时过期）。
+          </div>
+        </section>
+
+        <!-- 初始化与种子 -->
+        <section id="seed">
+          <h2>初始化与种子</h2>
+          <p>首次启动（<code>auto_migrate: true</code> 默认开启）会自动建表，并 seed 一个管理员账号与 Casbin 初始策略：</p>
+          <ul>
+            <li>管理员：<code>admin</code> / <code>admin123</code></li>
+            <li>Casbin 策略：<code>admin</code> 全权限；<code>user</code> 只读用户详情</li>
+          </ul>
+          <div class="callout warn">
+            <strong>安全提示：</strong>种子账号仅用于本地 / 演示。生产部署请务必修改默认密码，或通过环境变量 / 配置中心注入凭据。
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    go-boilerplate · 文档由 GitHub Pages 自动部署 · 基于 <code>website/</code> 纯静态站点
+  </footer>
+
+  <script>
+    // 滚动高亮侧边导航
+    const links = Array.from(document.querySelectorAll('.sidebar a'));
+    const map = new Map();
+    links.forEach(a => {
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) map.set(el, a);
+    });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const a = map.get(e.target);
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    map.forEach((_, el) => observer.observe(el));
+  </script>
+</body>
+</html>
